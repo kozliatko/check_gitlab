@@ -6,7 +6,7 @@ This is a pure bash/curl/jq/awk plugin for _nagios/icinga_ to check health of gi
 
 __Usage: check_gitlab.sh [options]
 
-Gitlab Naemon/Icinga/Nagios plugin which checks various stuff via Gitlab API(v4)
+	Gitlab Naemon/Icinga/Nagios plugin which checks various stuff via Gitlab API(v4)
 
 Options:
 
