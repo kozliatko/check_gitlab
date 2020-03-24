@@ -9,11 +9,17 @@ __Usage: check_gitlab.sh [options]
 Gitlab Naemon/Icinga/Nagios plugin which checks various stuff via Gitlab API(v4)
 
 Options:
+
   **-U, --URL ADDRESS**                Gitlab address
+
   **-t, --token TOKEN**                Access token
+
   **-s, --service NAME**               Service name ("cache_check" "db_check" "gitaly_check" "master_check" "queues_check" "redis_check" "shared_state_check")
+
   **-k, --insecure**                   No ssl verification
+
   **-x, --noproxy**                    No connect over proxy
+
   **-h, --help**                       Show this help message
 
 --------------
