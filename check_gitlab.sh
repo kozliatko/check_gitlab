@@ -112,8 +112,8 @@ done
 ## main
 require_command curl
 require_command jq
+require_command awk
 
-#TOKEN="N3BkyY_xNLiAhrJs_Wes"
 
 FULLPATH="${URL}/-/readiness?all=1&token=${TOKEN}"
 
