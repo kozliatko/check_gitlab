@@ -1,5 +1,10 @@
 # check_gitlab
 
+![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=white)
+![Nagios/Icinga](https://img.shields.io/badge/Nagios%2FIcinga-plugin-004357)
+![License](https://img.shields.io/github/license/kozliatko/check_gitlab)
+![Last commit](https://img.shields.io/github/last-commit/kozliatko/check_gitlab)
+
 This is a pure bash/curl/jq/awk plugin for _nagios/icinga_ to check health of gitlab
 
 --------------
