@@ -1,5 +1,6 @@
 # check_gitlab
 
+[![Security](https://github.com/kozliatko/check_gitlab/actions/workflows/security.yml/badge.svg)](https://github.com/kozliatko/check_gitlab/actions/workflows/security.yml)
 ![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=white)
 ![Nagios/Icinga](https://img.shields.io/badge/Nagios%2FIcinga-plugin-004357)
 ![License](https://img.shields.io/github/license/kozliatko/check_gitlab)
