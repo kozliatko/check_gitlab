@@ -4,9 +4,9 @@ title = "gitleaks konfigurácia — secret scanning"
 useDefault = true
 
 [allowlist]
-description = "Placeholdery, príklady a testovacie fixtures"
+description = "Placeholdery a zakomentovaný príklad tokenu v histórii"
 paths = [
-  '''\\.env\\.example$''',
-  '''\\.env\\.sample$''',
-  '''(^|/)tests?/''',
+  '''\.env\.example$''',
+  '''\.env\.sample$''',
 ]
+commits = ["7d6414920189eaa5b435da82c4b20af3ed63f0b2"]
