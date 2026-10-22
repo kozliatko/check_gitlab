@@ -21,7 +21,7 @@ Usage: ${me} [options]
 Options:
     -U, --URL ADDRESS                Gitlab address
     -t, --token TOKEN                Access token
-    -s, --service NAME               Service name ("cache_check" "db_check" "gitaly_check" "master_check" "queues_check" "redis_check" "shared_state_check")
+    -s, --service NAME               Service name ("cache_check" "db_check" "gitaly_check" "master_check" "queues_check" "shared_state_check" "rate_limiting_check" "sessions_check" "trace_chunks_check" ...)
     -k, --insecure                   No ssl verification
     -x, --noproxy                    No connect over proxy
     -h, --help                       Show this help message
@@ -122,11 +122,21 @@ if [ ${NOPROXY} -gt 0 ]; then
   PROXY_OPTS="--noproxy ${REMOTE}"
 fi
 
-JSON=$(curl ${PROXY_OPTS} ${EXTRA_OPTS} "${FULLPATH}" 2>/dev/null)
+RESP=$(curl -s --max-time 10 -w '\n%{http_code}' ${PROXY_OPTS} ${EXTRA_OPTS} "${FULLPATH}" 2>/dev/null)
 retval=$?
-if [ ${retval} -gt 0 ]; then 
-  die 1 "incorrect curl return code: ${retval}"
-  exit
+if [ ${retval} -gt 0 ]; then
+  echo "CRITICAL - GitLab unreachable (curl return code: ${retval})"
+  exit ${CRITICAL}
+fi
+HTTP_CODE=${RESP##*$'\n'}
+JSON=${RESP%$'\n'*}
+
+# readiness returns JSON even with HTTP 503 (failed sub-check); anything else
+# (e.g. 502 error page during restart) means GitLab is not available.
+# jq 1.6 returns 0 on empty input, hence the explicit empty test.
+if [ -z "${JSON}" ] || ! echo "${JSON}" | jq -e 'type == "object" and has("status")' >/dev/null 2>&1; then
+  echo "CRITICAL - GitLab unreachable (HTTP ${HTTP_CODE}, response is not readiness JSON)"
+  exit ${CRITICAL}
 fi
 
 KEYS=$(echo $JSON | jq --sort-keys 'keys'| jq -c '.[]')
@@ -180,8 +190,8 @@ fi
 
 #echo "${OUT}"
 if [ ${ERRCODE} -gt 0 ]; then
-  echo "WARN - ${OUT}"
-  exit ${WARN}
+  echo "WARNING - ${OUT}"
+  exit ${WARNING}
 else
   echo "OK - ${OUT}"
   exit ${OK}
