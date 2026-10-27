@@ -11,10 +11,12 @@ Pure bash/curl/jq/awk plugins for _nagios/icinga_ to check a self-managed GitLab
 
 - `check_gitlab.sh` - health of GitLab components (readiness endpoint)
 - `check_gitlab_version.sh` - whether the installed GitLab version is up to date
+- `check_gitlab_prometheus.sh` - firing alerts of the Prometheus bundled with Omnibus GitLab
 
-Both plugins use the GitLab **health check access token**
+`check_gitlab.sh` and `check_gitlab_version.sh` use the GitLab **health check access token**
 (Admin area -> Monitoring -> Health check), or work without it when the
 monitoring host is in the GitLab monitoring IP allowlist.
+`check_gitlab_prometheus.sh` needs no token, it reads the Prometheus API.
 
 --------------
 
@@ -96,6 +98,66 @@ OK - GitLab 19.5.1-ee is up to date (latest 19.5.1)
 
 Running it once a day is enough.
 
+## check_gitlab_prometheus.sh
+
+__Usage: check_gitlab_prometheus.sh [options]__
+
+	Gitlab Naemon/Icinga/Nagios plugin which reports the firing alerts
+	of the Prometheus bundled with Omnibus GitLab
+
+Options:
+
+  **-U, --URL ADDRESS**                Prometheus address (default `http://127.0.0.1:9090`)
+
+  **-c, --critical "NAMES"**           Alerts reported as CRITICAL, the others are WARNING
+                                     (default `"ServiceDown RedisDown PostgresDown FilesystemAlmostFull"`)
+
+  **-k, --insecure**                   No ssl verification
+
+  **-x, --noproxy**                    No connect over proxy
+
+  **-h, --help**                       Show this help message
+
+Omnibus GitLab ships Prometheus with alerting rules (`ServiceDown`, `RedisDown`,
+`PostgresDown`, `PumaQueueing`, `HighPumaUtilization`, `SidekiqJobsQueuing`,
+`HighgRPCResourceExhaustedRate`, `PostgresDatabaseDeadlocks`, `WorkhorseHighErrorRate`,
+`FilesystemAlmostFull`, `FilesystemFullIn1Day`, ...), but the bundled alertmanager
+sends them nowhere. The plugin reads the firing alerts
+(`ALERTS{alertstate="firing"}`, so the `for` duration of a rule is already applied)
+and reports them with the labels that tell them apart (`job`, `name`, `route`,
+`mountpoint`, `datname`).
+
+| result | state |
+|---|---|
+| no firing alert | OK |
+| a firing alert, none of them in the `-c` list | WARNING |
+| a firing alert from the `-c` list | CRITICAL |
+| Prometheus unreachable, or no alerting rules loaded | UNKNOWN |
+
+Perfdata (also in the OK output): Puma utilization and queued connections,
+Rails 5xx ratio and p95 latency over 15 minutes, Gitaly gRPC errors per second
+(`Internal`, `Unavailable`, `ResourceExhausted`, `DeadlineExceeded`, `Unknown`),
+PostgreSQL connections and `max_connections`.
+
+Example:
+
+```
+$ check_gitlab_prometheus.sh
+OK - no firing alert: 13 rules, Puma 0% (queue 0), 5xx 0%, p95 0.496s, PostgreSQL 28/400 connections | puma_util=0% puma_queue=0 rails_5xx=0% rails_p95=0.496s gitaly_errors=0 pg_connections=28;;;0;400
+```
+
+The bundled Prometheus listens on `localhost:9090` only, so the plugin runs on the
+GitLab host and Nagios gets the result e.g. via NRPE or an SNMP extend:
+
+```
+# /etc/snmp/snmpd.conf on the GitLab host
+extend gitlabprom /usr/local/bin/check_gitlab_prometheus.sh
+```
+
+`WorkhorseHighErrorRate` has no `for` duration and fires on short bursts of errors
+(e.g. on `/info/refs` or `/-/cable`); a service with `max_check_attempts 3` usually
+keeps such bursts in a SOFT state.
+
 ## Nagios configuration
 
 ```
@@ -128,7 +190,20 @@ define service {
 
 The token is kept as the custom host variable `_GITLABTOKEN`.
 
-Requirements: bash, curl, jq, awk, base64.
+`check_gitlab_prometheus.sh` through an SNMP extend (see above), with the
+`check_snmp_extend` plugin that maps the `OK`/`WARNING`/`CRITICAL`/`UNKNOWN`
+prefix of the first line to the state:
+
+```
+define service {
+	use			generic-service
+	host_name		gitlab
+	service_description	gitlab-prometheus-alerts
+	check_command		check_snmp_extend!gitlabprom
+}
+```
+
+Requirements: bash, curl, jq, awk, base64 (`check_gitlab_prometheus.sh`: curl, jq, awk).
 
 --------------
 

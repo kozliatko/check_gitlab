@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The project has no version numbers, entries are grouped by date.
 
+## 2026-10-27
+
+### Added
+- `check_gitlab_prometheus.sh`: reports the firing alerts of the Prometheus
+  bundled with Omnibus GitLab (`ALERTS{alertstate="firing"}`), whose alertmanager
+  sends them nowhere. Alerts from the `-c` list (default `ServiceDown`,
+  `RedisDown`, `PostgresDown`, `FilesystemAlmostFull`) are CRITICAL, the others
+  WARNING; Prometheus unreachable or without alerting rules is UNKNOWN. Perfdata:
+  Puma utilization and queue, Rails 5xx ratio and p95 latency, Gitaly errors,
+  PostgreSQL connections.
+- README: documentation of `check_gitlab_prometheus.sh` and an SNMP extend
+  example.
+
 ## 2026-10-22
 
 ### Added
